@@ -17,6 +17,7 @@ import { genSalt } from "bcrypt";
 import { User } from "../models/user.model.js";
 import uploadOnCloudinary from "../utility/cloundinary.js";
 import { Tweet } from "../models/tweet.model.js";
+import errorHandler from "../utility/errorHandler.js";
 
 //     var data = {
 //         "name": name,
@@ -25,7 +26,7 @@ import { Tweet } from "../models/tweet.model.js";
 //         "phone":phone
 //     }
 
-export const createUser = async (req, res) => {
+export const createUser = async (req, res,next) => {
   try {
     const { email, username, password } = req.body;
 
@@ -61,32 +62,36 @@ export const createUser = async (req, res) => {
       });
   } catch (error) {
     console.log(error);
-    return res
-      .status(500)
-      .send({ message: "user not created", error, result: false });
+    // return res
+    //   .status(500)
+    //   .send({ message: "user not created", error, result: false });
+    return next(errorHandler(500,"user not created"))
   }
 };
 
-export const loginUser = async (req, res) => {
+export const loginUser = async (req, res,next) => {
   const { email, password } = req.body;
-
+  
   const user = await User.findOne({ email: email });
-
+  
   if (!user) {
-    return res.status(404).json({
-      message: "user hai hi nahi bhai",
-      result: false,
-    });
-  }
-  let validPass = await user.isPasswordValid(password);
-
-  console.log(validPass);
-
-  if (!validPass) {
-    return res.status(401).json({
-      message: "Incorrect Password",
-      result: false,
-    });
+    return next(errorHandler(404,"user hai hi nahi bhai"))
+    // return res.status(404).json({
+      //   message: "user hai hi nahi bhai",
+      //   result: false,
+      // });
+    }
+    let validPass = await user.isPasswordValid(password);
+    
+    console.log(validPass);
+    
+    if (!validPass) {
+      
+      return next(errorHandler(401,"Incorrect Password"))
+    // return res.status(401).json({
+    //   message: "Incorrect Password",
+    //   result: false,
+    // });
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
@@ -130,18 +135,26 @@ export const userLogout = (req, res) => {
 
 export const updateProfile = async (req, res) => {
   const user = req.user;
-  const localFilePath = req.files.profilePicture[0].path;
+  
+  try {
+    
+    const localFilePath = req.files.profilePicture[0].path;
+    
+    const response = await uploadOnCloudinary(localFilePath);
+  
+    const updatedUser = await User.findByIdAndUpdate(
+      user._id, // Provide the user ID directly
+      { profilePicture: response.url }, // Update object
+      { new: true } // Options: `new: true` returns the updated document
+    );
+    return res
+      .status(200)
+      .json({ message: "profile picture updated", result: true, updatedUser });
 
-  const response = await uploadOnCloudinary(localFilePath);
+  } catch (error) {
+    next(error)
+  }
 
-  const updatedUser = await User.findByIdAndUpdate(
-    user._id, // Provide the user ID directly
-    { profilePicture: response.url }, // Update object
-    { new: true } // Options: `new: true` returns the updated document
-  );
-  return res
-    .status(200)
-    .json({ message: "profile picture updated", result: true, updatedUser });
 };
 
 export const userTweetCount = async (req, res) => {

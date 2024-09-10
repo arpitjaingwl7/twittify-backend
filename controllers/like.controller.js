@@ -1,5 +1,4 @@
 import { Like } from "../models/like.model.js";
-
 export const createLikeOnTweet=async(req,res)=>{
 
     

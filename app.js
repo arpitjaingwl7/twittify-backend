@@ -4,6 +4,7 @@ import userRoute from "./routes/user.route.js";
 import { userAuth } from "./middleware/user.auth.js";
 import tweetRoute from "./routes/tweet.route.js";
 import likeRouter from "./routes/like.route.js";
+import errorMiddleware from "./middleware/error.middleware.js";
 
 const app = express()
 app.use(cookieParser())
@@ -16,9 +17,10 @@ app.use("/tweet",userAuth,tweetRoute)
 app.use("/like",likeRouter)
 
 app.get("/",(req,res)=>{
-res.send("ha bhai sab badiya code chal rha hai")
+    res.send("ha bhai sab badiya code chal rha hai")
 })
 
+app.use(errorMiddleware)
 
 
 export default app
